@@ -1,0 +1,33 @@
+# Secrets never enter this repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# n8n runtime / local-only
+/.n8n/
+*.log
+
+# Editor / OS junk
+*.swp
+*~
+.*.swp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Obsidian
+.obsidian/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node (if/when custom nodes appear)
+node_modules/
+dist/
+build/
