@@ -1,0 +1,199 @@
+{
+  "id": "JgnGeSxjOeSLeZQT",
+  "name": "WB Ренейминг листа",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {"inputSource": "passthrough"},
+      "id": "7976c3fb-6c96-454b-88e3-8bef79b1ea84",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [5536, 128]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3},
+          "conditions": [
+            {"id": "ddeb1ebc-ed13-486c-8cf1-b8f844e3748a", "leftValue": "={{ $json.sheetName }}", "rightValue": "Лист", "operator": {"type": "string", "operation": "contains"}},
+            {"id": "765996ae-15a2-498e-b4b8-7539ac17acf3", "leftValue": "={{ $json.sheetName }}", "rightValue": "Шаблон", "operator": {"type": "string", "operation": "contains"}},
+            {"id": "2ff6b1e3-2241-4f08-9540-903d9ed23910", "leftValue": "={{ $json.sheetName }}", "rightValue": "копия", "operator": {"type": "string", "operation": "contains"}}
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [5728, 128],
+      "id": "18367e59-674d-41cd-88ad-a397c03fe980",
+      "name": "Только шаблонные листы1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3},
+          "conditions": [
+            {"id": "765996ae-15a2-498e-b4b8-7539ac17acf3", "leftValue": "={{ $json.sheetName }}", "rightValue": "Шаблон", "operator": {"type": "string", "operation": "notEquals"}}
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [5920, 128],
+      "id": "05b3148e-cd75-439b-92e9-075287795f6c",
+      "name": "Только шаблонные листы"
+    },
+    {
+      "parameters": {
+        "content": "## Ренейминг листа",
+        "height": 560,
+        "width": 1872,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [5520, 32],
+      "typeVersion": 1,
+      "id": "5377ff76-ecdb-4e09-9865-feeae53a7cb3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {"options": {}},
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [6224, 240],
+      "id": "b6c25cea-0e4e-4e92-b3e4-733853b95319",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [6528, 144],
+      "id": "e0fa0a1b-03e1-4bee-89a3-5a1b47c99cf3",
+      "name": "Объединить sheetId и категорию"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg/edit?gid=771469630#gid=771469630",
+          "mode": "url"
+        },
+        "sheetName": {"__rl": true, "value": "={{ $json.sheetName }}", "mode": "name"},
+        "filtersUI": {"values": []},
+        "options": {"returnFirstMatch": false}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [6528, 352],
+      "id": "b5cbc138-95a1-480b-9b6b-b446e184c6b1",
+      "name": "Читать строки технического листа",
+      "credentials": {"googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstValid = items.find(\n  item => item.json[\"Категория 1\"] && String(item.json[\"Категория 1\"]).trim() !== \"\"\n);\n\nreturn firstValid\n  ? [{ json: firstValid.json }]\n  : [];"
+      },
+      "id": "6ec30b35-0214-4611-b175-46f91067d04f",
+      "name": "Первая строка на лист",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6688, 352]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [{"id": "49737360-2bec-410e-8f22-968ac13db6fc", "name": "Категория 1", "value": "={{ $json[\"Категория 1\"] }}", "type": "string"}]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [6880, 352],
+      "id": "cbe5adbf-e637-44b1-acfa-1ddfcf36d63d",
+      "name": "Взять категорию и имя листа"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3},
+          "conditions": [{"id": "c86ca4d6-21eb-402a-b85b-94df1598d1eb", "leftValue": "={{ $json[\"Категория 1\"] }}", "rightValue": "", "operator": {"type": "string", "operation": "notEmpty", "singleValue": true}}],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [7056, 352],
+      "id": "721f2147-9d7f-4d2c-a648-384476f1046c",
+      "name": "Только с заполненной категорией"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allSheets = $('Start').all();\n\nfunction escapeRegExp(str) {\n  return str.replace(/[.*+?^${}()|[\\]\\\\]/g, \"\\\\$&\");\n}\n\nreturn items.map(item => {\n  const category = String(item.json[\"Категория 1\"] || \"\").trim();\n\n  if (!category) {\n    return item;\n  }\n\n  const categoryRe = escapeRegExp(category);\n\n  const matching = allSheets\n    .map(s => String(s.json.sheetName || \"\").trim())\n    .filter(name =>\n      name === category || name.match(new RegExp(`^${categoryRe} \\\\d+$`))\n    );\n\n  let nextNumber = 1;\n\n  if (matching.length) {\n    const numbers = matching.map(name => {\n      if (name === category) return 1;\n\n      const match = name.match(/(\\d+)$/);\n      return match ? Number(match[1]) : 1;\n    });\n\n    nextNumber = Math.max(...numbers) + 1;\n  }\n\n  return {\n    json: {\n      ...item.json,\n      sheetName: nextNumber === 1\n        ? category\n        : `${category} ${nextNumber}`\n    }\n  };\n});"
+      },
+      "id": "1a26b20a-c532-4b01-a91b-3c12a5ddc252",
+      "name": "Фильтр конфликтов имён",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6784, 144]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  requests: [\n    {\n      updateSheetProperties: {\n        properties: {\n          sheetId: $json.sheetId,\n          title: $json.sheetName\n        },\n        fields: \"title\"\n      }\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [7056, 144],
+      "id": "dc44639f-d34f-40b3-90cf-c1092a327001",
+      "name": "Переименовать лист",
+      "credentials": {"googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}}
+    }
+  ],
+  "connections": {
+    "Start": {"main": [[{"node": "Только шаблонные листы1", "type": "main", "index": 0}]]},
+    "Только шаблонные листы1": {"main": [[{"node": "Только шаблонные листы", "type": "main", "index": 0}]]},
+    "Только шаблонные листы": {
+      "main": [[
+        {"node": "Объединить sheetId и категорию", "type": "main", "index": 0},
+        {"node": "Loop Over Items", "type": "main", "index": 0}
+      ]]
+    },
+    "Loop Over Items": {
+      "main": [
+        [{"node": "Объединить sheetId и категорию", "type": "main", "index": 1}],
+        [{"node": "Читать строки технического листа", "type": "main", "index": 0}]
+      ]
+    },
+    "Читать строки технического листа": {"main": [[{"node": "Первая строка на лист", "type": "main", "index": 0}]]},
+    "Первая строка на лист": {"main": [[{"node": "Взять категорию и имя листа", "type": "main", "index": 0}]]},
+    "Взять категорию и имя листа": {"main": [[{"node": "Только с заполненной категорией", "type": "main", "index": 0}]]},
+    "Только с заполненной категорией": {"main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]},
+    "Объединить sheetId и категорию": {"main": [[{"node": "Фильтр конфликтов имён", "type": "main", "index": 0}]]},
+    "Фильтр конфликтов имён": {"main": [[{"node": "Переименовать лист", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {"templateCredsSetupCompleted": true},
+  "pinData": {},
+  "versionId": "2394f62e-fb87-44e8-acdf-c709378fefd8"
+}

@@ -1,0 +1,60 @@
+{
+  "exportType": "mcp-structure",
+  "sourceOfTruth": "n8n",
+  "exportedAt": "2026-05-02T00:00:00Z",
+  "workflow": {
+    "id": "88LhHNzfuXNgHTR8",
+    "name": "WB Заполнение новых строк",
+    "active": true,
+    "isArchived": false,
+    "nodeCount": 14,
+    "enabledRuntimeNodes": 14,
+    "connectionCount": 12,
+    "nodes": [
+      {"name": "Start", "type": "n8n-nodes-base.executeWorkflowTrigger", "position": [3040, -1072], "note": "Receives sheetName and chatId from the source flow"},
+      {"name": "Читать все строки листа", "type": "n8n-nodes-base.httpRequest", "position": [3248, -1072], "note": "Reads the full sheet"},
+      {"name": "Найти незаполненные строки", "type": "n8n-nodes-base.code", "position": [3424, -1072], "note": "Extracts rows where title is empty"},
+      {"name": "Loop Over Items", "type": "n8n-nodes-base.splitInBatches", "position": [3616, -1072], "note": "Processes rows in batches"},
+      {"name": "No Operation, do nothing", "type": "n8n-nodes-base.noOp", "position": [3792, -1056], "note": "Keeps the row/context branch alive"},
+      {"name": "Построить URL card.json (строка)", "type": "n8n-nodes-base.code", "position": [3984, -960], "note": "Builds the Wildberries card.json URL"},
+      {"name": "Загрузить card.json (строка)", "type": "n8n-nodes-base.httpRequest", "position": [4176, -960], "note": "Fetches card.json"},
+      {"name": "Нормализовать карточку WB", "type": "n8n-nodes-base.code", "position": [4352, -960], "note": "Restores row context after HTTP response"},
+      {"name": "Объединить строку и карточку", "type": "n8n-nodes-base.merge", "position": [4544, -1040], "note": "Combines context and card data"},
+      {"name": "Собрать батч строк", "type": "n8n-nodes-base.code", "position": [4736, -1040], "note": "Builds batchUpdate payload"},
+      {"name": "Записать строку в лист", "type": "n8n-nodes-base.httpRequest", "position": [4912, -1040], "note": "Writes the batch back to Google Sheets"},
+      {"name": "TG Rows Done Payload", "type": "n8n-nodes-base.code", "position": [5120, -1168], "note": "Prepares the Telegram completion payload"},
+      {"name": "TG Rows Done", "type": "n8n-nodes-base.telegram", "position": [5376, -1168], "note": "Sends the completion ping"},
+      {"name": "Sticky Note", "type": "n8n-nodes-base.stickyNote", "position": [3232, -1280], "note": "Section marker for row discovery"}
+    ],
+    "connections": {
+      "Start": ["Читать все строки листа"],
+      "Читать все строки листа": ["Найти незаполненные строки"],
+      "Найти незаполненные строки": ["Loop Over Items"],
+      "Loop Over Items": ["TG Rows Done Payload", "No Operation, do nothing"],
+      "No Operation, do nothing": ["Построить URL card.json (строка)", "Объединить строку и карточку"],
+      "Построить URL card.json (строка)": ["Загрузить card.json (строка)"],
+      "Загрузить card.json (строка)": ["Нормализовать карточку WB"],
+      "Нормализовать карточку WB": ["Объединить строку и карточку"],
+      "Объединить строку и карточку": ["Собрать батч строк"],
+      "Собрать батч строк": ["Записать строку в лист"],
+      "Записать строку в лист": ["Loop Over Items"],
+      "TG Rows Done Payload": ["TG Rows Done"]
+    },
+    "validation": {
+      "checkedAt": "2026-05-02T00:00:00Z",
+      "valid": true,
+      "errorCount": 0,
+      "warningCount": 4,
+      "notableWarnings": [
+        "Code nodes and batch looping remain intentionally verbose.",
+        "The Telegram completion branch is wired from the done output."
+      ]
+    },
+    "executionObservations": {
+      "lastExecutionTime": "2026-05-01T21:09:44.054Z",
+      "notes": [
+        "Row filling is active and emits a completion ping when the batch ends."
+      ]
+    }
+  }
+}

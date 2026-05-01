@@ -1,0 +1,250 @@
+{
+  "id": "88LhHNzfuXNgHTR8",
+  "name": "WB Заполнение новых строк",
+  "active": true,
+  "nodes": [
+    {
+      "id": "ea7597cd-8b1d-4791-a3fb-33b7f4524669",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [3040, -1072],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {"name": "sheetName", "type": "any"},
+            {"name": "chatId", "type": "any"}
+          ]
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Обнаружение и заполнение новых строк\n",
+        "height": 560,
+        "width": 1872,
+        "color": 1
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [3232, -1280],
+      "typeVersion": 1,
+      "id": "d0d95f68-f6ff-4aa6-8921-edc3cdaa5ea9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg/values/'{{ $json.sheetName }}'!A1:ZZ30000",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": false,
+        "options": {},
+        "infoMessage": ""
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [3248, -1072],
+      "id": "ad3d6646-dbf1-49a0-80e1-81753fc8dc6b",
+      "name": "Читать все строки листа",
+      "credentials": {"googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}}
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return items.flatMap(item => {\n  const data = item.json;\n\n  const values = data.values || [];\n  if (values.length < 2) return [];\n\n  const headers = values[0];\n\n  const sheetName = String(data.range || \"\")\n    .split(\"!\")[0]\n    .replace(/^'/, \"\")\n    .replace(/'$/, \"\");\n\n  const nameIndex = headers.indexOf(\"Название\");\n\n  const result = [];\n\n  for (let i = 1; i < values.length; i++) {\n    const row = values[i];\n    const rowNumber = i + 1;\n\n    const sku = String(row[0] || \"\").trim();\n    const link = String(row[1] || \"\").trim();\n    const photo = String(row[2] || \"\").trim();\n    const title = nameIndex >= 0 ? String(row[nameIndex] || \"\").trim() : \"\";\n\n    const first3Filled = sku !== \"\" && link !== \"\" && photo !== \"\";\n    const titleEmpty = nameIndex === -1 || title === \"\";\n\n    if (first3Filled && titleEmpty) {\n      result.push({\n        json: {\n          sheetName,\n          rowNumber,\n          SKU: sku,\n          Ссылка: link,\n          Фото: photo,\n          headers\n        }\n      });\n    }\n  }\n\n  return result;\n});",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3424, -1072],
+      "id": "f9d38f76-d411-4391-9f9a-1a59160f8c31",
+      "name": "Найти незаполненные строки"
+    },
+    {
+      "parameters": {
+        "splitInBatchesNotice": "",
+        "batchSize": 50,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [3616, -1072],
+      "id": "66ae4b4d-6d57-4c32-95d5-485052a82245",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [3792, -1056],
+      "id": "4e45f05c-fbf5-4090-be47-4ddac32db203",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "return items.map(item => {\n  const row = item.json;\n\n  const sku =\n    row.SKU ||\n    String(row[\"Ссылка\"]).match(/\\/catalog\\/(\\d+)\\//)?.[1];\n\n  const nm = Number(sku);\n  const vol = Math.floor(nm / 100000);\n  const part = Math.floor(nm / 1000);\n\n  // Надежнее брать basket из ссылки на фото, если она есть\n  let basket = null;\n  const photo = row[\"Фото\"] || \"\";\n  const m = String(photo).match(/basket-(\\d+)\\.wbbasket/);\n  if (m) basket = m[1].padStart(2, \"0\");\n\n  if (!basket) {\n    throw new Error(`Нет basket в ссылке фото для SKU ${sku}`);\n  }\n\n  return {\n    json: {\n      ...row,\n      Артикул: sku,\n      cardJsonUrl: `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nm}/info/ru/card.json`,\n    }\n  };\n});",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3984, -960],
+      "id": "8d7ecbe0-477f-4a9c-95b1-dfca97641fc9",
+      "name": "Построить URL card.json (строка)"
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "={{ $json.cardJsonUrl }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {"name": "User-Agent", "value": "Mozilla/5.0"},
+            {"name": "Accept", "value": "application/json,text/plain,*/*"}
+          ]
+        },
+        "sendBody": false,
+        "options": {},
+        "infoMessage": ""
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [4176, -960],
+      "id": "1161d27d-55cf-4ac5-ae8b-9bbb32c447a4",
+      "name": "Загрузить card.json (строка)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const BASE_HEADERS = [\n  \"SKU\",\n  \"Ссылка\",\n  \"Фото\",\n  \"Артикул\",\n  \"Название\",\n  \"Категория 1\",\n  \"Категория 2\",\n  \"Бренд\"\n];\n\nfunction val(v) {\n  if (Array.isArray(v)) return v.join(\"; \");\n  if (v === null || v === undefined) return \"\";\n  return String(v);\n}\n\nfunction getAllOptions(card) {\n  const map = new Map();\n  for (const opt of card.options || []) {\n    if (opt?.name) map.set(opt.name, val(opt.value));\n  }\n  for (const group of card.grouped_options || []) {\n    for (const opt of group.options || []) {\n      if (opt?.name && !map.has(opt.name)) map.set(opt.name, val(opt.value));\n    }\n  }\n  return map;\n}\n\n// HTTP Request заменяет item данными ответа card.json, теряя sheetName,\n// rowNumber, Фото, headers. Восстанавливаем их из ноды до запроса,\n// чтобы merge стал ненужным и данные шли с записью всё время.\nconst sourceItems = $('Построить URL card.json (строка)').all();\n\nreturn items.map((item, index) => {\n  const card = item.json;\n  const src = sourceItems[index]?.json || {};\n\n  const sku = String(\n    card.SKU || card[\"Артикул\"] || card.nm_id || card.nmId || src.SKU || \"\"\n  );\n\n  const row = {\n    sheetName:     src.sheetName,\n    rowNumber:     src.rowNumber,\n    headers:       src.headers,\n\n    SKU:           sku,\n    Артикул:       sku,\n    Ссылка:        src[\"Ссылка\"] || (sku ? `https://www.wildberries.ru/catalog/${sku}/detail.aspx` : \"\"),\n    Фото:          src[\"Фото\"] || \"\",\n\n    Название:      card.imt_name || card.imtName || card.name || \"\",\n    \"Категория 1\": card.subj_name || card.subjectName || \"\",\n    \"Категория 2\": card.subj_root_name || card.parentName || \"\",\n    Бренд:         card.selling?.brand_name || card.brand || card.brand_name || \"\",\n  };\n\n  const optionsMap = getAllOptions(card);\n  for (const [name, value] of optionsMap.entries()) {\n    if (name === \"Фото\") continue;\n    row[name] = value;\n  }\n\n  return { json: row };\n});",
+        "notice": ""
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4352, -960],
+      "id": "b0383665-6dda-4000-bac2-53e0f266cd89",
+      "name": "Нормализовать карточку WB"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [4544, -1040],
+      "id": "39eacb01-6db6-4f7c-b6ce-95e55f04fea7",
+      "name": "Объединить строку и карточку"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Агрегируем все строки в один batchUpdate payload.\n// Вместо 50 отдельных PUT-запросов — один POST.\n// Если незаполненных строк нет — возвращаем [] чтобы оборвать рекурсию.\nconst items = $input.all();\nif (items.length === 0) return [];\n\n// Пропускаем строки где card.json не вернул данные (Название пустое).\n// Они останутся незаполненными и будут перепробованы на следующем прогоне.\nconst ready = items.filter(item => item.json['Название']);\nif (ready.length === 0) return [];\n\nconst data = ready.map(item => ({\n  range: `'${item.json.sheetName}'!A${item.json.rowNumber}`,\n  values: [(item.json.headers || []).map(h => item.json[h] ?? '')]\n}));\n\nreturn [{ json: { batchData: data } }];",
+        "notice": ""
+      },
+      "id": "2bfd5244-83a8-46e9-bd4e-64939294fa57",
+      "name": "Собрать батч строк",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4736, -1040]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ valueInputOption: 'USER_ENTERED', data: $json.batchData }) }}",
+        "options": {},
+        "infoMessage": ""
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [4912, -1040],
+      "id": "5b4ce00c-fa96-4d89-b700-570bfc69b309",
+      "name": "Записать строку в лист",
+      "credentials": {"googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}}
+    },
+    {
+      "id": "28746c11-f7ac-42a2-ab2d-a33dbd8d63d8",
+      "name": "TG Rows Done Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5120, -1168],
+      "parameters": {
+        "jsCode": "const chatId = String($('Start').first().json.chatId || '').trim();\nif (!chatId) return [];\n\nreturn [{\n  json: {\n    chatId,\n    text: '✅ <b>WB Flow</b>: заполнение новых строк завершено'\n  }\n}];"
+      }
+    },
+    {
+      "id": "47a253ca-4500-44f6-898f-8d6a16550482",
+      "name": "TG Rows Done",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [5376, -1168],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": {"__rl": true, "value": "={{ $json.chatId }}", "mode": "expression"},
+        "text": "={{ $json.text }}",
+        "additionalFields": {"appendAttribution": false, "parse_mode": "HTML"}
+      },
+      "credentials": {"telegramApi": {"id": "uAzkD25F9itwYalr", "name": "WB Bot"}}
+    }
+  ],
+  "connections": {
+    "Start": {"main": [[{"node": "Читать все строки листа", "type": "main", "index": 0}]]},
+    "Читать все строки листа": {"main": [[{"node": "Найти незаполненные строки", "type": "main", "index": 0}]]},
+    "Найти незаполненные строки": {"main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]},
+    "Loop Over Items": {
+      "main": [
+        [{"node": "TG Rows Done Payload", "type": "main", "index": 0}],
+        [{"node": "No Operation, do nothing", "type": "main", "index": 0}]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [[
+        {"node": "Построить URL card.json (строка)", "type": "main", "index": 0},
+        {"node": "Объединить строку и карточку", "type": "main", "index": 0}
+      ]]
+    },
+    "Построить URL card.json (строка)": {"main": [[{"node": "Загрузить card.json (строка)", "type": "main", "index": 0}]]},
+    "Загрузить card.json (строка)": {"main": [[{"node": "Нормализовать карточку WB", "type": "main", "index": 0}]]},
+    "Нормализовать карточку WB": {"main": [[{"node": "Объединить строку и карточку", "type": "main", "index": 1}]]},
+    "Объединить строку и карточку": {"main": [[{"node": "Собрать батч строк", "type": "main", "index": 0}]]},
+    "Собрать батч строк": {"main": [[{"node": "Записать строку в лист", "type": "main", "index": 0}]]},
+    "Записать строку в лист": {"main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]},
+    "TG Rows Done Payload": {"main": [[{"node": "TG Rows Done", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "899ff6a6-d460-4fac-b99d-8f1c6cc9ea17"
+}

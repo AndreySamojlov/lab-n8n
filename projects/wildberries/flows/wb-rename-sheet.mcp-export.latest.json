@@ -1,0 +1,59 @@
+{
+  "exportType": "mcp-structure",
+  "sourceOfTruth": "n8n",
+  "exportedAt": "2026-05-02T00:00:00Z",
+  "workflow": {
+    "id": "JgnGeSxjOeSLeZQT",
+    "name": "WB Ренейминг листа",
+    "active": true,
+    "isArchived": false,
+    "nodeCount": 14,
+    "enabledRuntimeNodes": 14,
+    "connectionCount": 11,
+    "nodes": [
+      {"name": "Start", "type": "n8n-nodes-base.executeWorkflowTrigger", "position": [3248, -592], "note": "Receives chatId from the source flow"},
+      {"name": "Только шаблонные листы1", "type": "n8n-nodes-base.filter", "position": [3440, -592], "note": "Initial filter for candidate sheets"},
+      {"name": "Только шаблонные листы", "type": "n8n-nodes-base.filter", "position": [3632, -592], "note": "Keeps only template-like sheets"},
+      {"name": "Loop Over Items", "type": "n8n-nodes-base.splitInBatches", "position": [3936, -480], "note": "Iterates over candidate sheets"},
+      {"name": "Читать строки технического листа", "type": "n8n-nodes-base.googleSheets", "position": [4240, -368], "note": "Reads the technical sheet"},
+      {"name": "Первая строка на лист", "type": "n8n-nodes-base.code", "position": [4400, -368], "note": "Keeps the first valid category row"},
+      {"name": "Взять категорию и имя листа", "type": "n8n-nodes-base.set", "position": [4592, -368], "note": "Prepares the target name"},
+      {"name": "Только с заполненной категорией", "type": "n8n-nodes-base.filter", "position": [4768, -368], "note": "Keeps rows with a non-empty category"},
+      {"name": "Объединить sheetId и категорию", "type": "n8n-nodes-base.merge", "position": [4240, -576], "note": "Combines sheetId with category"},
+      {"name": "Фильтр конфликтов имён", "type": "n8n-nodes-base.code", "position": [4496, -576], "note": "Avoids rename collisions"},
+      {"name": "Переименовать лист", "type": "n8n-nodes-base.httpRequest", "position": [4768, -576], "note": "Calls Google Sheets batchUpdate rename"},
+      {"name": "TG Rename Done Payload", "type": "n8n-nodes-base.code", "position": [5072, -512], "note": "Prepares the Telegram completion payload"},
+      {"name": "TG Rename Done", "type": "n8n-nodes-base.telegram", "position": [5312, -512], "note": "Sends the completion ping"},
+      {"name": "Sticky Note3", "type": "n8n-nodes-base.stickyNote", "position": [3232, -688], "note": "Section marker for rename branch"}
+    ],
+    "connections": {
+      "Start": ["Только шаблонные листы1"],
+      "Только шаблонные листы1": ["Только шаблонные листы"],
+      "Только шаблонные листы": ["Объединить sheetId и категорию", "Loop Over Items"],
+      "Loop Over Items": ["Объединить sheetId и категорию", "TG Rename Done Payload", "Читать строки технического листа"],
+      "Читать строки технического листа": ["Первая строка на лист"],
+      "Первая строка на лист": ["Взять категорию и имя листа"],
+      "Взять категорию и имя листа": ["Только с заполненной категорией"],
+      "Только с заполненной категорией": ["Loop Over Items"],
+      "Объединить sheetId и категорию": ["Фильтр конфликтов имён"],
+      "Фильтр конфликтов имён": ["Переименовать лист"],
+      "TG Rename Done Payload": ["TG Rename Done"]
+    },
+    "validation": {
+      "checkedAt": "2026-05-02T00:00:00Z",
+      "valid": true,
+      "errorCount": 0,
+      "warningCount": 4,
+      "notableWarnings": [
+        "Code nodes and split-in-batches wiring remain intentionally explicit.",
+        "The Telegram completion branch is wired from the done output."
+      ]
+    },
+    "executionObservations": {
+      "lastExecutionTime": "2026-05-01T21:09:45.583Z",
+      "notes": [
+        "Rename flow is active and emits a completion ping when the batch ends."
+      ]
+    }
+  }
+}

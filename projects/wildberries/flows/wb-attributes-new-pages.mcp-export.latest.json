@@ -1,0 +1,56 @@
+{
+  "exportType": "mcp-structure",
+  "sourceOfTruth": "n8n",
+  "exportedAt": "2026-05-02T00:00:00Z",
+  "workflow": {
+    "id": "K2b7NpHHLXbr9FDz",
+    "name": "WB Атрибуты новых страниц",
+    "active": true,
+    "isArchived": false,
+    "nodeCount": 12,
+    "enabledRuntimeNodes": 12,
+    "connectionCount": 10,
+    "nodes": [
+      {"name": "Start", "type": "n8n-nodes-base.executeWorkflowTrigger", "position": [1632, -672], "note": "Receives sheetName and chatId from the source flow"},
+      {"name": "Только новые листы", "type": "n8n-nodes-base.filter", "position": [1808, -672], "note": "Keeps only resolution=new"},
+      {"name": "Читать строку A2 нового листа", "type": "n8n-nodes-base.httpRequest", "position": [2192, -656], "note": "Reads the seed row"},
+      {"name": "Извлечь SKU и ссылки", "type": "n8n-nodes-base.code", "position": [2368, -656], "note": "Builds items for the first new-card lookup"},
+      {"name": "Построить URL card.json", "type": "n8n-nodes-base.code", "position": [2528, -656], "note": "Constructs the Wildberries card.json URL"},
+      {"name": "Загрузить card.json (новый лист)", "type": "n8n-nodes-base.httpRequest", "position": [2720, -576], "note": "Fetches public card.json"},
+      {"name": "Merge", "type": "n8n-nodes-base.merge", "position": [2896, -640], "note": "Combines row context and card response"},
+      {"name": "Собрать заголовки из карточки", "type": "n8n-nodes-base.code", "position": [3056, -640], "note": "Builds the final headers array"},
+      {"name": "Записать заголовки в лист", "type": "n8n-nodes-base.httpRequest", "position": [3232, -640], "note": "Writes the updated first row"},
+      {"name": "Loop Over Items", "type": "n8n-nodes-base.splitInBatches", "position": [2016, -672], "note": "Batches the incoming items"},
+      {"name": "TG Headers Done Payload", "type": "n8n-nodes-base.code", "position": [3200, -800], "note": "Prepares the Telegram completion payload"},
+      {"name": "TG Headers Done", "type": "n8n-nodes-base.telegram", "position": [3440, -800], "note": "Sends the completion ping"}
+    ],
+    "connections": {
+      "Start": ["Только новые листы"],
+      "Только новые листы": ["Loop Over Items"],
+      "Loop Over Items": ["TG Headers Done Payload", "Читать строку A2 нового листа"],
+      "Читать строку A2 нового листа": ["Извлечь SKU и ссылки"],
+      "Извлечь SKU и ссылки": ["Построить URL card.json"],
+      "Построить URL card.json": ["Загрузить card.json (новый лист)", "Merge"],
+      "Загрузить card.json (новый лист)": ["Merge"],
+      "Merge": ["Собрать заголовки из карточки"],
+      "Собрать заголовки из карточки": ["Записать заголовки в лист"],
+      "TG Headers Done Payload": ["TG Headers Done"]
+    },
+    "validation": {
+      "checkedAt": "2026-05-02T00:00:00Z",
+      "valid": true,
+      "errorCount": 0,
+      "warningCount": 4,
+      "notableWarnings": [
+        "Code nodes and loop wiring still produce non-blocking warnings.",
+        "The done-output branch is intentionally used for the Telegram completion ping."
+      ]
+    },
+    "executionObservations": {
+      "lastExecutionTime": "2026-05-01T21:09:43.999Z",
+      "notes": [
+        "Header enrichment is active and posts a completion ping when the batch finishes."
+      ]
+    }
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "id": "5v6bHbLoj1tNjrhT",
+  "name": "Wildberries / Source / WB Flow Webhook",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [2352, -1184],
+      "id": "a14a11b9-08e1-4cc7-a8f4-fc26d5058008",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [2352, -1008],
+      "id": "0de91b43-2367-4a43-be68-d001749f6b69",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{"name": "fields", "value": "sheets.properties(sheetId,title)"}]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2656, -1088],
+      "id": "e8701778-a0ab-4e8e-a051-8dc3fa592c87",
+      "name": "Получить список листов",
+      "credentials": {
+        "googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheets = $json.sheets || [];\n\nreturn sheets.map(s => ({\n  json: {\n    sheetName: s.properties.title,\n    sheetId: s.properties.sheetId\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2864, -1088],
+      "id": "e0ecfd75-d851-4e93-9cad-c985f4f16b33",
+      "name": "Разобрать список листов"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg/values/{{encodeURIComponent($json.sheetName + '!1:2')}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{"name": "majorDimension", "value": "ROWS"}]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2656, -848],
+      "id": "5eee7fbb-e6d1-4e6c-9446-b82fe2465da2",
+      "name": "Получить заголовки листа",
+      "credentials": {
+        "googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = item.json;\n\n  const values = data.values || [];\n  const headers = values[0] || [];\n  const firstDataRow = values[1] || [];\n\n  const sheetName = String(data.range || \"\")\n    .split(\"!\")[0]\n    .replace(/^'/, \"\")\n    .replace(/'$/, \"\");\n\n  const fieldCount = headers.length;\n  const hasRowData = firstDataRow.some(cell => String(cell || \"\").trim() !== \"\");\n\n  let resolution = \"old\";\n  if (fieldCount <= 3) {\n    resolution = hasRowData ? \"new\" : \"template\";\n  }\n\n  return {\n    json: {\n      sheetName,\n      fieldCount,\n      resolution\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2864, -848],
+      "id": "3e0f4cc5-2eb3-4818-bbc4-fc2f2f28baae",
+      "name": "Определить тип листа"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "sheetName",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [3264, -864],
+      "id": "ea06ab90-0154-4cb6-afde-571bf603b658",
+      "name": "Объединить листы и типы"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "K2b7NpHHLXbr9FDz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/K2b7NpHHLXbr9FDz",
+          "cachedResultName": "WB Атрибуты новых страниц"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": ["resolution"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [3472, -1216],
+      "name": "1. WB Атрибуты новых страниц",
+      "id": "fc54f65a-f4ed-4513-bc09-4d9ce5c67ddf"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "88LhHNzfuXNgHTR8",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/88LhHNzfuXNgHTR8",
+          "cachedResultName": "WB Заполнение новых строк"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {"sheetName": "={{ $json.sheetName }}"},
+          "matchingColumns": ["sheetName"],
+          "schema": [{"id": "sheetName", "displayName": "sheetName", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "removed": false}],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [3472, -1040],
+      "name": "2. WB Заполнение новых строк",
+      "id": "2b51dacd-ab82-4ae3-894f-c6d93ffd4fd7"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "JgnGeSxjOeSLeZQT",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/JgnGeSxjOeSLeZQT",
+          "cachedResultName": "WB Ренейминг листа"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": ["___allItems", "sheetName"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [3472, -864],
+      "name": "3. WB Ренейминг листа",
+      "id": "0426e181-df0d-4f64-a636-88f058ff3b2b"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {"main": [[{"node": "Получить список листов", "type": "main", "index": 0}]]},
+    "When Executed by Another Workflow": {"main": [[{"node": "Получить список листов", "type": "main", "index": 0}]]},
+    "Получить список листов": {"main": [[{"node": "Разобрать список листов", "type": "main", "index": 0}]]},
+    "Разобрать список листов": {
+      "main": [[
+        {"node": "Получить заголовки листа", "type": "main", "index": 0},
+        {"node": "Объединить листы и типы", "type": "main", "index": 0}
+      ]]
+    },
+    "Получить заголовки листа": {"main": [[{"node": "Определить тип листа", "type": "main", "index": 0}]]},
+    "Определить тип листа": {
+      "main": [[
+        {"node": "Объединить листы и типы", "type": "main", "index": 1},
+        {"node": "2. WB Заполнение новых строк", "type": "main", "index": 0},
+        {"node": "1. WB Атрибуты новых страниц", "type": "main", "index": 0}
+      ]]
+    },
+    "Объединить листы и типы": {"main": [[{"node": "3. WB Ренейминг листа", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedMode": "fixed"
+  },
+  "staticData": {"node:Schedule Trigger": {"recurrenceRules": []}},
+  "meta": {"templateCredsSetupCompleted": true},
+  "pinData": {},
+  "versionId": "3e2f3819-8f6a-4254-b5bf-be88a0cd5044"
+}

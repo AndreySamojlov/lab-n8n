@@ -1,0 +1,128 @@
+{
+  "exportType": "mcp-structure",
+  "exportedAt": "2026-04-30",
+  "workflow": {
+    "id": "dM0BgWX6GtyGLPFw",
+    "name": "WB Flow",
+    "active": false,
+    "isArchived": false,
+    "createdAt": "2026-04-29T16:46:09.958Z",
+    "updatedAt": "2026-04-30T09:46:40.137Z",
+    "nodeCount": 38,
+    "connectionCount": 30
+  },
+  "nodes": [
+    { "name": "When clicking ‘Execute workflow’", "type": "n8n-nodes-base.manualTrigger" },
+    { "name": "Schedule Trigger", "type": "n8n-nodes-base.scheduleTrigger" },
+    { "name": "When Executed by Another Workflow", "type": "n8n-nodes-base.executeWorkflowTrigger" },
+    { "name": "HTTP Request", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Code in JavaScript", "type": "n8n-nodes-base.code" },
+    { "name": "HTTP Request1", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Code in JavaScript1", "type": "n8n-nodes-base.code" },
+    { "name": "Filter", "type": "n8n-nodes-base.filter" },
+    { "name": "HTTP Request3", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Code in JavaScript2", "type": "n8n-nodes-base.code" },
+    { "name": "HTTP Request5", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Code in JavaScript6", "type": "n8n-nodes-base.code" },
+    { "name": "Get row(s) in sheet1", "type": "n8n-nodes-base.googleSheets" },
+    { "name": "Code in JavaScript7", "type": "n8n-nodes-base.code" },
+    { "name": "HTTP Request6", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Code in JavaScript8", "type": "n8n-nodes-base.code" },
+    { "name": "Merge1", "type": "n8n-nodes-base.merge" },
+    { "name": "Append or update row in sheet1", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Get row(s) in sheet", "type": "n8n-nodes-base.googleSheets" },
+    { "name": "Code in JavaScript3", "type": "n8n-nodes-base.code" },
+    { "name": "HTTP Request2", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Code in JavaScript5", "type": "n8n-nodes-base.code" },
+    { "name": "Edit Fields", "type": "n8n-nodes-base.set" },
+    { "name": "Merge", "type": "n8n-nodes-base.merge" },
+    { "name": "HTTP Request4", "type": "n8n-nodes-base.httpRequest" },
+    { "name": "Merge2", "type": "n8n-nodes-base.merge" },
+    { "name": "Filter1", "type": "n8n-nodes-base.filter" },
+    { "name": "Get row(s) in sheet2", "type": "n8n-nodes-base.googleSheets" },
+    { "name": "Edit Fields1", "type": "n8n-nodes-base.set" },
+    { "name": "Filter2", "type": "n8n-nodes-base.filter" },
+    { "name": "Merge3", "type": "n8n-nodes-base.merge" },
+    { "name": "HTTP Request7", "type": "n8n-nodes-base.httpRequest" }
+  ],
+  "connections": [
+    ["When clicking ‘Execute workflow’", "HTTP Request"],
+    ["Schedule Trigger", "HTTP Request"],
+    ["When Executed by Another Workflow", "HTTP Request"],
+    ["HTTP Request", "Code in JavaScript"],
+    ["Code in JavaScript", "HTTP Request1"],
+    ["Code in JavaScript", "Merge2"],
+    ["HTTP Request1", "Code in JavaScript1"],
+    ["Code in JavaScript1", "Filter"],
+    ["Code in JavaScript1", "HTTP Request5"],
+    ["Code in JavaScript1", "Merge2"],
+    ["Filter", "HTTP Request3"],
+    ["HTTP Request3", "Code in JavaScript2"],
+    ["Code in JavaScript2", "Get row(s) in sheet"],
+    ["Code in JavaScript2", "Edit Fields"],
+    ["Get row(s) in sheet", "Code in JavaScript3"],
+    ["Code in JavaScript3", "HTTP Request2"],
+    ["HTTP Request2", "Code in JavaScript5"],
+    ["Code in JavaScript5", "Merge"],
+    ["Edit Fields", "Merge"],
+    ["Merge", "HTTP Request4"],
+    ["HTTP Request5", "Code in JavaScript6"],
+    ["Code in JavaScript6", "Get row(s) in sheet1"],
+    ["Code in JavaScript6", "Merge1"],
+    ["Get row(s) in sheet1", "Code in JavaScript7"],
+    ["Code in JavaScript7", "HTTP Request6"],
+    ["HTTP Request6", "Code in JavaScript8"],
+    ["Code in JavaScript8", "Merge1"],
+    ["Merge1", "Append or update row in sheet1"],
+    ["Merge2", "Filter1"],
+    ["Filter1", "Get row(s) in sheet2"],
+    ["Filter1", "Merge3"],
+    ["Get row(s) in sheet2", "Edit Fields1"],
+    ["Edit Fields1", "Filter2"],
+    ["Filter2", "Merge3"],
+    ["Merge3", "HTTP Request7"]
+  ],
+  "validation": {
+    "valid": true,
+    "errorCount": 0,
+    "warningCount": 60,
+    "summary": {
+      "totalNodes": 34,
+      "enabledNodes": 34,
+      "triggerNodes": 3,
+      "validConnections": 36,
+      "invalidConnections": 0,
+      "expressionsValidated": 42
+    },
+    "keyWarnings": [
+      "Most nodes lack error handling",
+      "Append or update row in sheet and Code in JavaScript4 are unreachable",
+      "Filter1 has two matched-branch connections and no unmatched branch",
+      "Long linear chain detected"
+    ]
+  },
+  "fixes": [
+    {
+      "date": "2026-04-30",
+      "summary": "Header/row alignment fix: dynamic card headers are emitted per item as writeHeaders, final row writes use Google Sheets values.update through HTTP Request instead of cached Google Sheets node schema, disconnected triggers were wired to the main start, and the unreachable self-call node was removed."
+    }
+  ],
+  "observedExecutions": [
+    {
+      "id": "1204",
+      "status": "success",
+      "mode": "manual",
+      "startedAt": "2026-04-30T09:45:44.228Z",
+      "stoppedAt": "2026-04-30T09:45:51.445Z",
+      "executedNodes": 25,
+      "totalItems": 100
+    },
+    {
+      "id": "1205",
+      "status": "success",
+      "mode": "trigger",
+      "startedAt": "2026-04-30T09:46:27.042Z",
+      "stoppedAt": "2026-04-30T09:46:27.053Z"
+    }
+  ]
+}

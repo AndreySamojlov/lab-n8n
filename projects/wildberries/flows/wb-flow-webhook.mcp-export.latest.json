@@ -1,0 +1,53 @@
+{
+  "exportType": "mcp-structure",
+  "sourceOfTruth": "n8n",
+  "exportedAt": "2026-05-02T00:00:00Z",
+  "workflow": {
+    "id": "5v6bHbLoj1tNjrhT",
+    "name": "Wildberries / Source / WB Flow Webhook",
+    "active": true,
+    "isArchived": false,
+    "nodeCount": 10,
+    "enabledRuntimeNodes": 10,
+    "connectionCount": 6,
+    "nodes": [
+      {"name": "Получить список листов", "type": "n8n-nodes-base.httpRequest", "position": [2400, -1200], "note": "Fetches Google Sheets spreadsheet metadata"},
+      {"name": "Получить заголовки листа", "type": "n8n-nodes-base.httpRequest", "position": [2400, -960], "note": "Reads the first two rows of each sheet"},
+      {"name": "Разобрать список листов", "type": "n8n-nodes-base.code", "position": [2608, -1200], "note": "Normalizes sheets into sheetName + sheetId items"},
+      {"name": "Определить тип листа", "type": "n8n-nodes-base.code", "position": [2608, -960], "note": "Classifies sheet as new, template, or old"},
+      {"name": "Объединить листы и типы", "type": "n8n-nodes-base.merge", "position": [3008, -976], "note": "Matches sheets by sheetName"},
+      {"name": "1. WB Атрибуты новых страниц", "type": "n8n-nodes-base.executeWorkflow", "position": [3216, -1328], "note": "Passes chatId to the header enrichment subflow"},
+      {"name": "2. WB Заполнение новых строк", "type": "n8n-nodes-base.executeWorkflow", "position": [3216, -1152], "note": "Passes sheetName and chatId to the row fill subflow"},
+      {"name": "3. WB Ренейминг листа", "type": "n8n-nodes-base.executeWorkflow", "position": [3216, -976], "note": "Passes chatId to the rename subflow"},
+      {"name": "Webhook", "type": "n8n-nodes-base.webhook", "position": [2144, -1328], "note": "Launches the flow once via path wb-flow"},
+      {"name": "WB Run Started", "type": "n8n-nodes-base.telegram", "position": [2384, -1392], "note": "Sends the start ping to Telegram"}
+    ],
+    "connections": {
+      "Webhook": ["Получить список листов", "WB Run Started"],
+      "Получить список листов": ["Разобрать список листов"],
+      "Разобрать список листов": ["Получить заголовки листа", "Объединить листы и типы"],
+      "Получить заголовки листа": ["Определить тип листа"],
+      "Определить тип листа": ["Объединить листы и типы", "2. WB Заполнение новых строк", "1. WB Атрибуты новых страниц"],
+      "Объединить листы и типы": ["3. WB Ренейминг листа"]
+    },
+    "validation": {
+      "checkedAt": "2026-05-02T00:00:00Z",
+      "valid": true,
+      "errorCount": 0,
+      "warningCount": 4,
+      "notableWarnings": [
+        "Code nodes still emit non-blocking style warnings.",
+        "Webhook response advice remains informational only.",
+        "Execute Workflow nodes rely on chatId passthrough for Telegram streaming."
+      ]
+    },
+    "executionObservations": {
+      "lastExecutionTime": "2026-05-01T21:09:43.274Z",
+      "notes": [
+        "One-shot launch flow is active and uses Telegram as the progress channel.",
+        "Subflow completion messages are emitted from the active Engine workflows."
+      ]
+    },
+    "notes": "Webhook launch with Telegram start ping and Telegram completion streaming from the three active subflows."
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "id": "OCOu4G3k5W7JchYE",
+  "name": "Wildberries / Utility / TG Bot Control",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "49d45e54-3980-4d0e-b615-db2b1c170119",
+      "name": "TGWebhook",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [576, 64],
+      "webhookId": "a188fa59-5595-421c-a275-81fdde2d1303",
+      "credentials": {
+        "telegramApi": {
+          "id": "uAzkD25F9itwYalr",
+          "name": "WB Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const update = $json;\n\nif (update.callback_query) {\n  const cb = update.callback_query;\n  const data = (cb.data || '').toLowerCase().trim();\n  const valid = ['включить', 'выключить', 'статус'];\n  const action = valid.includes(data) ? data : 'menu';\n  return [{\n    json: {\n      action,\n      chatId: String(cb.message?.chat?.id || ''),\n      callbackQueryId: String(cb.id || '')\n    }\n  }];\n}\n\nif (update.message) {\n  return [{\n    json: {\n      action: 'menu',\n      chatId: String(update.message?.chat?.id || '')\n    }\n  }];\n}\n\nreturn [];"
+      },
+      "id": "3f8e50ae-f5e6-40d8-963b-7cf78d31831d",
+      "name": "Razobrat Zapros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 64]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "cond-on", "leftValue": "={{ $json.action }}", "rightValue": "включить", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "on"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "cond-off", "leftValue": "={{ $json.action }}", "rightValue": "выключить", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "off"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "cond-status", "leftValue": "="{{ $json.action }}", "rightValue": "статус", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "status"
+            }
+          ]
+        },
+        "options": {"fallbackOutput": "extra"}
+      },
+      "id": "dfa338bd-0dd6-418c-855b-5d1d4ffcbfd9",
+      "name": "Switch Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1024, 32]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "🤖 <b>WB Flow</b> — панель управления\n\nВыберите действие:",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [{"row": {"buttons": [{"text": "Включить", "additionalFields": {"callback_data": "включить"}}]}}]
+        },
+        "additionalFields": {"appendAttribution": false, "parse_mode": "HTML"}
+      },
+      "id": "f083658f-d5ef-4451-9414-0139c3a04c22",
+      "name": "Send Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1296, 176],
+      "webhookId": "6e412f5c-f04a-4eaf-9f87-826177bea989",
+      "credentials": {"telegramApi": {"id": "uAzkD25F9itwYalr", "name": "WB Bot"}}
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Switch Action').item.json.chatId }}",
+        "text": "▶️ <b>WB Flow</b> запущен",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {"rows": []},
+        "additionalFields": {"appendAttribution": false, "parse_mode": "HTML"}
+      },
+      "id": "2f18645c-ba78-42c8-bc74-c919b1a94fc4",
+      "name": "Reply On",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1536, 16],
+      "webhookId": "bbdbced5-2d6c-4537-b8cd-f439671f6f9b",
+      "credentials": {"telegramApi": {"id": "uAzkD25F9itwYalr", "name": "WB Bot"}}
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5v6bHbLoj1tNjrhT",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5v6bHbLoj1tNjrhT",
+          "cachedResultName": "Wildberries / Source / WB Flow Webhook"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1744, 16],
+      "id": "0fd42b71-9177-4456-ad2e-c77e96cc667d",
+      "name": "Call 'Wildberries / Source / WB Flow Webhook'",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Switch Action').item.json.chatId }}",
+        "text": "✅ <b>WB Flow</b> отработал",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [{"row": {"buttons": [{"text": "Включить", "additionalFields": {"callback_data": "включить"}}]}}]
+        },
+        "additionalFields": {"appendAttribution": false, "parse_mode": "HTML"}
+      },
+      "id": "ed0d2f26-7b78-4ba6-957b-11b8dcc04c1d",
+      "name": "Reply On1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1904, 16],
+      "webhookId": "bbdbced5-2d6c-4537-b8cd-f439671f6f9b",
+      "executeOnce": true,
+      "credentials": {"telegramApi": {"id": "uAzkD25F9itwYalr", "name": "WB Bot"}}
+    }
+  ],
+  "connections": {
+    "TGWebhook": {"main": [[{"node": "Razobrat Zapros", "type": "main", "index": 0}]]},
+    "Razobrat Zapros": {"main": [[{"node": "Switch Action", "type": "main", "index": 0}]]},
+    "Switch Action": {
+      "main": [
+        [{"node": "Reply On", "type": "main", "index": 0}],
+        [],
+        [],
+        [{"node": "Send Menu", "type": "main", "index": 0}]
+      ]
+    },
+    "Reply On": {"main": [[{"node": "Call 'Wildberries / Source / WB Flow Webhook'", "type": "main", "index": 0}]]},
+    "Call 'Wildberries / Source / WB Flow Webhook'": {"main": [[{"node": "Reply On1", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {"templateCredsSetupCompleted": true},
+  "pinData": {},
+  "versionId": "1fd61f0a-dce2-488c-8145-4eb504f60817"
+}

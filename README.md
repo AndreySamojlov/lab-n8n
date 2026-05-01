@@ -1,19 +1,23 @@
 # lab-n8n
 
-Рабочий репозиторий практики разработки n8n-воркфлоу для self-host платформы `lab-infra`.
+Рабочее пространство практики разработки n8n-workflow для self-host платформы `lab-infra`.
 
 ## Что здесь живёт
 
-- `workflows/` — экспортированные воркфлоу n8n, версионированные по конвенции `<domain>-<action>.v<N>.json`.
-- `tests/` — golden-тесты воркфлоу (input.json + expected.json + run.md).
-- `projects/` — многоуровневые проекты (флоу + подфлоу + конфиг), когда появятся.
-- `nodes/` — кастомные ноды, когда появятся (принимаем по ADR).
-- `docs/` — компактная операционная документация репо (ADR, how-to, cookbook).
+- `projects/` — отдельные разделы n8n-проектов, включая `wildberries` с engine flow `WB Flow` и utility flow `TG Bot Control`.
+- `docs/` — шаблоны и временный AI-generated inbox.
+- `scripts/` — локальные guardrails и вспомогательные скрипты.
+- `DESIGN.md` — текущий дизайн практики.
+- `CLAUDE.md` — главный файл правил агента.
+- `AGENTS.md` — тонкий Codex-specific слой.
+
+## Проекты
+
+- [`projects/job-searcher/`](./projects/job-searcher/) — пилот функциональной системы обработки вакансий (`Filter` → `Source` → `Engine` → `Analysis`).
+- [`projects/wildberries/`](./projects/wildberries/) — active-проект automation для Wildberries: `WB Flow` + `TG Bot Control`.
 
 ## Чего здесь нет
 
-- Правила для агента (они в `../CLAUDE.md` на уровне workspace `lab-n8n/`).
-- Дизайн-размышления и долговременный архив (там же, в `../docs/`).
 - Инфра-настройки n8n, домены, сертификаты — это `AndreySamojlov/lab-infra` (workspace `../../lab-infra/`).
 
 ## Связь с `lab-infra`
@@ -22,6 +26,7 @@
 
 ## Дисциплина
 
-- Кодировки: UTF-8 без BOM + LF, проверяется `.gitattributes` и `.editorconfig`.
+- Кодировка: UTF-8 без BOM + LF, проверяется `.gitattributes`, `.editorconfig` и `scripts/check-utf8.py`.
 - Секреты в репо не попадают — только `{{ $credentials.* }}` или явные плейсхолдеры.
-- Каждый воркфлоу перед фиксацией прогоняется через golden-тест.
+- Workflow перед фиксацией валидируется и проверяется вручную или через MCP test workflow.
+

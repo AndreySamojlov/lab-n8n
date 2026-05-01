@@ -1,0 +1,164 @@
+{
+  "id": "K2b7NpHHLXbr9FDz",
+  "name": "WB Атрибуты новых страниц",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {"inputSource": "passthrough"},
+      "id": "662160fc-b432-447c-ae01-eb88060c9398",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [1504, -1072]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3},
+          "conditions": [{"id": "4ca858ed-cde3-460c-9973-de264b32295b", "leftValue": "={{ $json.resolution }}", "rightValue": "=new", "operator": {"type": "string", "operation": "equals"}}],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [1680, -1072],
+      "id": "f95fa7dc-be96-4bcf-a0cd-2b437bd98fef",
+      "name": "Только новые листы"
+    },
+    {
+      "parameters": {"options": {}},
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1888, -1072],
+      "id": "f313c38c-e41f-44fb-a7f8-9c06c07b8905",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg/values/'{{ $json.sheetName }}'!A2:ZZ11",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "majorDimension", "value": "ROWS"}]},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2064, -1056],
+      "id": "34d2ea68-00d0-454c-9a25-6f02c8106ae8",
+      "name": "Читать строку A2 нового листа",
+      "credentials": {"googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.flatMap(item => {\n  const data = item.json;\n\n  // Все строки из диапазона A2:ZZ6\n  const rows = data.values || [];\n\n  // Имя листа из range\n  const sheetName = String(data.range || \"\")\n    .split(\"!\")[0]\n    .replace(/^'/, \"\")\n    .replace(/'$/, \"\");\n\n  return rows\n    .filter(row => row && row.length)\n    .map(row => ({\n      json: {\n        sheetName,\n        SKU: row[0] || \"\",\n        Ссылка: row[1] || \"\",\n        Фото: row[2] || \"\"\n      }\n    }))\n    .filter(item => item.json.SKU);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2240, -1056],
+      "id": "499f9be2-84b9-4a61-82d2-8efc5cb13ba3",
+      "name": "Извлечь SKU и ссылки"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const row = item.json;\n\n  const sku =\n    row.SKU ||\n    String(row[\"Ссылка\"]).match(/\\/catalog\\/(\\d+)\\//)?.[1];\n\n  const nm = Number(sku);\n  const vol = Math.floor(nm / 100000);\n  const part = Math.floor(nm / 1000);\n\n  // Надежнее брать basket из ссылки на фото, если она есть\n  let basket = null;\n  const photo = row[\"Фото\"] || \"\";\n  const m = String(photo).match(/basket-(\\d+)\\.wbbasket/);\n  if (m) basket = m[1].padStart(2, \"0\");\n\n  if (!basket) {\n    throw new Error(`Нет basket в ссылке фото для SKU ${sku}`);\n  }\n\n  return {\n    json: {\n      ...row,\n      Артикул: sku,\n      cardJsonUrl: `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nm}/info/ru/card.json`,\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, -1056],
+      "id": "f3c63529-d123-4e94-b17b-23d63eb62afd",
+      "name": "Построить URL card.json"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.cardJsonUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "User-Agent", "value": "Mozilla/5.0"},
+            {"name": "Accept", "value": "application/json,text/plain,*/*"}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2592, -976],
+      "id": "6efbad8e-a77e-4d5c-b414-1478ea7b6f2c",
+      "name": "Загрузить card.json (новый лист)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [2768, -1040],
+      "id": "0b5589df-7e1f-4886-a158-60e14de03fc6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE_HEADERS = [\n  \"SKU\",\n  \"Ссылка\",\n  \"Фото\",\n  \"Артикул\",\n  \"Название\",\n  \"Категория 1\",\n  \"Категория 2\",\n  \"Бренд\"\n];\n\nconst bySheet = new Map();\n\nfunction addHeader(headers, name) {\n  const value = String(name || \"\").trim();\n  if (!value) return;\n  if (value === \"Фото\") return;\n  if (!headers.includes(value)) headers.push(value);\n}\n\nfunction collectHeadersFromCard(headers, card) {\n  // Основные поля карточки\n  addHeader(headers, \"Описание\");\n\n  // Атрибуты WB\n  for (const opt of card.options || []) {\n    addHeader(headers, opt.name);\n  }\n\n  // На всякий случай, если часть атрибутов есть только тут\n  for (const group of card.grouped_options || []) {\n    for (const opt of group.options || []) {\n      addHeader(headers, opt.name);\n    }\n  }\n}\n\nfor (const item of items) {\n  const sheetName = item.json.sheetName || \"UNKNOWN_SHEET\";\n\n  if (!bySheet.has(sheetName)) {\n    bySheet.set(sheetName, [...BASE_HEADERS]);\n  }\n\n  collectHeadersFromCard(bySheet.get(sheetName), item.json);\n}\n\nreturn [...bySheet.entries()].map(([sheetName, headers]) => ({\n  json: {\n    sheetName,\n    headers\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2928, -1040],
+      "id": "067da256-9865-49b6-a57a-924080ec0fe0",
+      "name": "Собрать заголовки из карточки"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1L3LBcyYm1pY0UTTenMr53kCruzaD0XNjkFPYqfPUbNg/values/'{{$json.sheetName}}'!A1:ZZ1?valueInputOption=RAW",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  range: \"'\" + $json.sheetName + \"'!A1:ZZ1\",\n  majorDimension: \"ROWS\",\n  values: [$json.headers]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [3104, -1040],
+      "id": "4fbed89d-1850-4945-8efd-20b96c321a2a",
+      "name": "Записать заголовки в лист",
+      "credentials": {"googleSheetsOAuth2Api": {"id": "QE9uvAMy1GSYW8Ym", "name": "Google Sheets account"}}
+    }
+  ],
+  "connections": {
+    "Start": {"main": [[{"node": "Только новые листы", "type": "main", "index": 0}]]},
+    "Только новые листы": {"main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]},
+    "Loop Over Items": {
+      "main": [
+        [],
+        [{"node": "Читать строку A2 нового листа", "type": "main", "index": 0}]
+      ]
+    },
+    "Читать строку A2 нового листа": {"main": [[{"node": "Извлечь SKU и ссылки", "type": "main", "index": 0}]]},
+    "Извлечь SKU и ссылки": {"main": [[{"node": "Построить URL card.json", "type": "main", "index": 0}]]},
+    "Построить URL card.json": {
+      "main": [[
+        {"node": "Загрузить card.json (новый лист)", "type": "main", "index": 0},
+        {"node": "Merge", "type": "main", "index": 0}
+      ]]
+    },
+    "Загрузить card.json (новый лист)": {"main": [[{"node": "Merge", "type": "main", "index": 1}]]},
+    "Merge": {"main": [[{"node": "Собрать заголовки из карточки", "type": "main", "index": 0}]]},
+    "Собрать заголовки из карточки": {"main": [[{"node": "Записать заголовки в лист", "type": "main", "index": 0}]]},
+    "Записать заголовки в лист": {"main": [[{"node": "Loop Over Items", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "14801459-4af1-446b-87cf-e3b4c97c2f62"
+}
